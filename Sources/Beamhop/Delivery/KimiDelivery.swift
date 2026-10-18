@@ -19,15 +19,15 @@ enum KimiDelivery {
     /// Returns nil on success, or a user-facing failure reason (caller falls back to clipboard).
     static func deliver(_ capture: Capture, userNote: String?) -> String? {
         guard let (app, bundleID) = runningApp() else {
-            return "Kimi Work 未运行(先打开它,或改用剪贴板)"
+            return L10n.s("Kimi Work is not running (open it first, or use the clipboard)")
         }
-        guard AppActivator.focus(app, bundleID: bundleID) else { return "无法把 Kimi Work 切到前台" }
+        guard AppActivator.focus(app, bundleID: bundleID) else { return L10n.s("Could not bring Kimi Work to the front") }
 
         AXHelper.enableManualAX(pid: app.processIdentifier)
         usleep(150_000)   // let Chromium rebuild the tree
 
         guard AXComposerFinder.waitForWindow(pid: app.processIdentifier) else {
-            return "Kimi Work 窗口未打开(点开它的窗口再试)"
+            return L10n.s("No Kimi Work window is open (open its window and try again)")
         }
 
         // Deliver into a FRESH conversation (context hygiene): press the sidebar "新建会话"
@@ -39,11 +39,11 @@ enum KimiDelivery {
         }
 
         guard let composer = AXComposerFinder.findComposer(pid: app.processIdentifier) else {
-            return "未找到 Kimi 输入框(AXTextArea)——版本可能已变化,请用剪贴板"
+            return L10n.s("Kimi input box (AXTextArea) not found — the version may have changed; use the clipboard")
         }
         guard AXUIElementSetAttributeValue(composer, kAXFocusedAttribute as CFString,
                                            kCFBooleanTrue) == .success else {
-            return "无法聚焦 Kimi 输入框"
+            return L10n.s("Could not focus the Kimi input box")
         }
         usleep(150_000)   // focus settle before the paste lands
 
@@ -52,9 +52,9 @@ enum KimiDelivery {
         do {
             try ClipboardService.safePasteOnly(md)
         } catch {
-            return "剪贴板无法保护,已放弃自动粘贴(请手动粘贴)"
+            return L10n.s("Clipboard could not be protected — automatic paste aborted (paste manually)")
         }
-        Notifier.info("已粘贴到 Kimi Work", "请检查内容后手动发送(不自动回车)")
+        Notifier.info(L10n.s("Pasted into Kimi Work"), L10n.s("Review the content and send manually (never auto-enters)"))
         return nil
     }
 

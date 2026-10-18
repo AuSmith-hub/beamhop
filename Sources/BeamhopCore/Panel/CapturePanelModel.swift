@@ -33,7 +33,7 @@ public final class CapturePanelModel: ObservableObject {
         var parts: [String] = [capture.appName]
         if let t = capture.windowTitle, !t.isEmpty { parts.append(t) }
         let chars = (capture.selectedText?.count ?? 0) + (capture.extractedBody?.count ?? 0)
-        if chars > 0 { parts.append("\(chars / 10 * 10) 字") }
+        if chars > 0 { parts.append("\(chars / 10 * 10) \(L10n.s("chars"))") }
         return parts.joined(separator: " · ")
     }
 
@@ -46,16 +46,16 @@ public final class CapturePanelModel: ObservableObject {
     /// Target button label; Cowork stays honest about its clipboard degradation (spec §2.1).
     public func targetLabel(_ target: DeliveryTarget) -> String {
         switch target {
-        case .claudeCode: return "Claude Code"
-        case .chatgptDesktop: return "ChatGPT"
-        case .cowork: return "Cowork →剪贴板"
-        case .clipboard: return "剪贴板"
-        case .kimiWork: return "Kimi Work"
+        case .claudeCode: return L10n.s("Claude Code")
+        case .chatgptDesktop: return L10n.s("ChatGPT")
+        case .cowork: return L10n.s("Cowork → clipboard")
+        case .clipboard: return L10n.s("Clipboard")
+        case .kimiWork: return L10n.s("Kimi Work")
         }
     }
 
     public var confirmLabel: String {
-        guard let selectedTarget else { return "仅存入 Inbox" }
-        return "投递(\(targetLabel(selectedTarget)))"
+        guard let selectedTarget else { return L10n.s("Save to Inbox only") }
+        return L10n.s("Deliver (\(targetLabel(selectedTarget)))")
     }
 }

@@ -14,7 +14,7 @@ struct CapturePanelView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "doc.on.doc")
                         .foregroundStyle(.secondary)
-                    Text("已抓取  \(model.summaryLine)")
+                    Text("Captured  \(model.summaryLine)")
                         .font(.headline)
                         .lineLimit(1)
                 }
@@ -36,7 +36,7 @@ struct CapturePanelView: View {
             Divider()
 
             // 指令框：出现即 focus（验收 §2.2 第 1 条）
-            TextField("指令(可选),如:总结一下这段…", text: $model.note)
+            TextField("Instruction (optional), e.g. summarize this…", text: $model.note)
                 .textFieldStyle(.plain)
                 .font(.body)
                 .focused($noteFocused)
@@ -46,7 +46,7 @@ struct CapturePanelView: View {
             // 目标行：⌘1 Claude Code / ⌘2 ChatGPT / ⌘3 Cowork / ⌘4 Kimi Work / ⌘0 仅入 Inbox
             // （键位映射唯一来源是 PanelShortcut，按钮与键盘路由不会漂移）
             VStack(alignment: .leading, spacing: 6) {
-                Text("投递到")
+                Text("Deliver to")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 HStack(spacing: 10) {
@@ -58,7 +58,7 @@ struct CapturePanelView: View {
             }
 
             HStack {
-                Button("Esc 取消") { model.cancel() }
+                Button("Esc cancel") { model.cancel() }
                     .keyboardShortcut(.cancelAction)
                     .buttonStyle(.plain)
                     .foregroundStyle(.secondary)
@@ -100,7 +100,7 @@ struct CapturePanelView: View {
                 Image(systemName: selected ? "circle.fill" : "circle")
                     .font(.system(size: 8))
                     .foregroundStyle(selected ? Color.accentColor : .secondary)
-                Text("\(PanelShortcut.inboxOnly.badge) 仅入 Inbox")
+                Text("\(PanelShortcut.inboxOnly.badge) Inbox only")
                     .font(.callout)
             }
         }

@@ -18,9 +18,9 @@ enum ChatGPTDelivery {
     /// Returns nil on success, or a user-facing failure reason (caller falls back to clipboard).
     static func deliver(_ capture: Capture, userNote: String?) -> String? {
         guard let (app, bundleID) = runningApp() else {
-            return "ChatGPT Desktop 未运行(先打开它,或改用剪贴板)"
+            return L10n.s("ChatGPT Desktop is not running (open it first, or use the clipboard)")
         }
-        guard AppActivator.focus(app, bundleID: bundleID) else { return "无法把 ChatGPT Desktop 切到前台" }
+        guard AppActivator.focus(app, bundleID: bundleID) else { return L10n.s("Could not bring ChatGPT Desktop to the front") }
 
         // S3: without this opt-in the AX tree of com.openai.chat is unusable.
         AXHelper.enableManualAX(pid: app.processIdentifier)
@@ -29,11 +29,11 @@ enum ChatGPTDelivery {
         // A running app with no open window has no composer — say so instead of blaming the version.
         // Polling: the AX window publishes lazily after activation (measured race on Kimi).
         guard AXComposerFinder.waitForWindow(pid: app.processIdentifier) else {
-            return "ChatGPT 窗口未打开(点开它的聊天窗口再试)"
+            return L10n.s("No ChatGPT window is open (open a chat window and try again)")
         }
 
         guard let composer = AXComposerFinder.findComposer(pid: app.processIdentifier) else {
-            return "未找到 ChatGPT 输入框(AXTextArea)——版本可能已变化,请用剪贴板"
+            return L10n.s("ChatGPT input box (AXTextArea) not found — the version may have changed; use the clipboard")
         }
 
         // ChatGPT has no MCP channel, so we inject the FULL self-contained markdown (§7.5).
@@ -42,11 +42,11 @@ enum ChatGPTDelivery {
         let md = PromptRenderer.fullMarkdown(capture, userNote: userNote)
         guard AXUIElementSetAttributeValue(composer, kAXValueAttribute as CFString,
                                            md as CFString) == .success else {
-            return "AX set-value 注入失败(输入框可能只读或版本已变化)"
+            return L10n.s("AX set-value injection failed (the input box may be read-only or the version changed)")
         }
         // S3 measured: send button exists (MessageInputPrimaryButtonContainerPart.PrimaryButton)
         // but auto-submit stays OFF by spec — surface an explicit review step instead.
-        Notifier.info("已注入 ChatGPT Desktop", "请检查内容后手动发送(不自动回车)")
+        Notifier.info(L10n.s("Injected into ChatGPT Desktop"), L10n.s("Review the content and send manually (never auto-enters)"))
         return nil
     }
 

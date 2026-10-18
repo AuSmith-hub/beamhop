@@ -117,9 +117,9 @@ final class Week3FeatureTests: XCTestCase {
                           windowTitle: "Kimi Work", selectedText: String(repeating: "字", count: 25),
                           pid: 1, captureMethod: "ax")
         let m = panelModel(capture: cap)
-        XCTAssertEqual(m.summaryLine, "Kimi · Kimi Work · 20 字")
+        XCTAssertEqual(m.summaryLine, "Kimi · Kimi Work · 20 chars")
         XCTAssertEqual(m.previewText, String(repeating: "字", count: 25))
-        XCTAssertEqual(m.confirmLabel, "投递(Kimi Work)")
+        XCTAssertEqual(m.confirmLabel, "Deliver (Kimi Work)")
     }
 
     func testPanelConfirmCarriesTargetAndNote() {
@@ -142,7 +142,7 @@ final class Week3FeatureTests: XCTestCase {
         var confirmed: (DeliveryTarget?, String)?
         let m = panelModel(capture: sampleCapture(), initial: nil,
                            confirm: { t, n in confirmed = (t, n) })
-        XCTAssertEqual(m.confirmLabel, "仅存入 Inbox")
+        XCTAssertEqual(m.confirmLabel, "Save to Inbox only")
         m.confirm()
         XCTAssertNil(confirmed?.0)
     }
@@ -152,8 +152,8 @@ final class Week3FeatureTests: XCTestCase {
         let m = panelModel(capture: cap, initial: .cowork)
         XCTAssertNil(m.previewText)
         XCTAssertEqual(m.summaryLine, "A")
-        XCTAssertEqual(m.targetLabel(.cowork), "Cowork →剪贴板")
-        XCTAssertEqual(m.targetLabel(.clipboard), "剪贴板")
+        XCTAssertEqual(m.targetLabel(.cowork), "Cowork → clipboard")
+        XCTAssertEqual(m.targetLabel(.clipboard), "Clipboard")
     }
 
     // MARK: DeliveryTarget raw values

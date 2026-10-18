@@ -24,13 +24,13 @@ final class CaptureService {
         let t0 = Date()
 
         guard AXIsProcessTrusted() else {
-            return .rejected(reason: "未授予 Accessibility 权限 —— 无法抓取(去诊断面板开启)")
+            return .rejected(reason: L10n.s("Accessibility permission not granted — cannot capture (enable it in the Diagnostics window)"))
         }
         guard let front = AXHelper.frontmostApp() else {
-            return .rejected(reason: "无法识别前台 app")
+            return .rejected(reason: L10n.s("Cannot identify the frontmost app"))
         }
         if AppBlacklist.isBlocked(front.bundleID) {
-            return .rejected(reason: "\(front.name) 在黑名单(密码/银行类),已拒绝抓取")
+            return .rejected(reason: "\(front.name) is on the blacklist (passwords/banking) — capture refused")
         }
 
         var read = AXHelper.read(front: front)
@@ -90,7 +90,7 @@ final class CaptureService {
             try store.insert(capture)
             return .captured(capture)
         } catch {
-            return .rejected(reason: "写入 Inbox 失败: \(error)")
+            return .rejected(reason: L10n.s("Failed to write to the Inbox: \(error)"))
         }
     }
 

@@ -236,9 +236,9 @@ do {
         let m = CapturePanelModel(capture: cap, initialTarget: .kimiWork,
                                   onConfirm: { t, n in confirmed = (t, n) },
                                   onCancel: { cancelled = true })
-        check(m.summaryLine == "Kimi · Kimi Work · 20 字", "summaryLine rounds chars down to 10s")
+        check(m.summaryLine == "Kimi · Kimi Work · 20 chars", "summaryLine rounds chars down to 10s")
         check(m.previewText == String(repeating: "字", count: 25), "preview passes short text through")
-        check(m.confirmLabel == "投递(Kimi Work)", "confirm label shows selected target")
+        check(m.confirmLabel == "Deliver (Kimi Work)", "confirm label shows selected target")
         m.note = "总结一下这段"
         m.confirm()
         check(confirmed?.0 == .kimiWork && confirmed?.1 == "总结一下这段", "confirm carries target + note")
@@ -247,7 +247,7 @@ do {
         let m0 = CapturePanelModel(capture: cap, initialTarget: nil,
                                    onConfirm: { t, n in confirmed = (t, n) },
                                    onCancel: { cancelled = true })
-        check(m0.confirmLabel == "仅存入 Inbox", "nil target → 仅存入 Inbox")
+        check(m0.confirmLabel == "Save to Inbox only", "nil target → Save to Inbox only")
         m0.confirm()
         check(confirmed?.0 == nil, "⌘0 confirm delivers nil target (Inbox only)")
         m0.cancel()
@@ -258,8 +258,8 @@ do {
                                    onConfirm: { _, _ in }, onCancel: {})
         check(mE.previewText == nil, "no body → no preview")
         check(mE.summaryLine == "A", "summaryLine without title/chars")
-        check(mE.targetLabel(.cowork) == "Cowork →剪贴板", "cowork label honest about clipboard")
-        check(mE.targetLabel(.clipboard) == "剪贴板", "clipboard label")
+        check(mE.targetLabel(.cowork) == "Cowork → clipboard", "cowork label honest about clipboard")
+        check(mE.targetLabel(.clipboard) == "Clipboard", "clipboard label")
     }
 
     print("== Week 3: DeliveryTarget raw values ==")

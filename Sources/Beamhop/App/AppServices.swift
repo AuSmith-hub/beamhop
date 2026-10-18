@@ -66,13 +66,13 @@ final class AppServices {
 
     private func registerHotkeys() {
         let cmdShift = UInt32(cmdKey | shiftKey)
-        hotkeys.register(Hotkey(id: 1, keyCode: 49, modifiers: cmdShift, name: "⌘⇧Space 抓取") {
+        hotkeys.register(Hotkey(id: 1, keyCode: 49, modifiers: cmdShift, name: "⌘⇧Space Capture") {
             [weak self] in self?.doCapture()
         })
         hotkeys.register(Hotkey(id: 2, keyCode: 34, modifiers: cmdShift, name: "⌘⇧I Inbox") {
             [weak self] in self?.inbox.show()
         })
-        hotkeys.register(Hotkey(id: 3, keyCode: 9, modifiers: cmdShift, name: "⌘⇧V 应急投递") {
+        hotkeys.register(Hotkey(id: 3, keyCode: 9, modifiers: cmdShift, name: "⌘⇧V Emergency deliver") {
             [weak self] in self?.emergencyClipboardPaste()
         })
         if !hotkeys.failed.isEmpty {
@@ -111,7 +111,7 @@ final class AppServices {
 
     private func doCapture() {
         guard capture != nil, delivery != nil else {
-            Notifier.error("数据库未就绪,无法抓取"); return
+            Notifier.error(L10n.s("Database not ready — cannot capture")); return
         }
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self, let capture = self.capture, let delivery = self.delivery else { return }
@@ -125,7 +125,7 @@ final class AppServices {
                 // W3-4: a <500ms same-window re-press is expected behavior — silent, log only.
                 self.log.info("duplicate capture ignored (<500ms, same window)")
             case .rejected(let reason):
-                Notifier.error("未抓取", reason)
+                Notifier.error(L10n.s("Capture failed"), reason)
             case .captured(let cap):
                 self.log.info("captured \(cap.id, privacy: .public) method=\(cap.captureMethod, privacy: .public) capture_ms=\(captureMs)")
                 DispatchQueue.main.async {
@@ -145,7 +145,7 @@ final class AppServices {
                 guard let self else { return }
                 guard let target else {
                     // ⌘0 仅入 Inbox: explicit no-delivery choice — tell the user it isn't lost.
-                    Notifier.info("已存入 Inbox", cap.id)
+                    Notifier.info(L10n.s("Saved to Inbox"), cap.id)
                     return
                 }
                 // Delivery off-main (AX activation sleeps); failure paths inside DeliveryService
@@ -158,7 +158,7 @@ final class AppServices {
             },
             onCancel: { [weak self] in
                 _ = self
-                Notifier.info("已存入 Inbox", cap.id)   // Esc / focus loss — capture is safe
+                Notifier.info(L10n.s("Saved to Inbox"), cap.id)   // Esc / focus loss — capture is safe
             })
         let panelMs = Int(Date().timeIntervalSince(pt0) * 1000)
         signposter.endInterval("panel_show", state, "\(panelMs)ms")
@@ -167,9 +167,9 @@ final class AppServices {
     /// ⌘⇧V emergency channel (spec §9.3): render the LATEST capture to the clipboard from
     /// anywhere — the universal fallback that never depends on AX or a running target.
     private func emergencyClipboardPaste() {
-        guard let store else { Notifier.error("数据库未就绪", "无法读取最新 Capture"); return }
+        guard let store else { Notifier.error(L10n.s("Database not ready"), L10n.s("Cannot read the latest capture")); return }
         guard let latest = (try? store.recent(limit: 1))?.first else {
-            Notifier.error("Inbox 为空", "先按 ⌘⇧Space 抓取一条")
+            Notifier.error(L10n.s("Inbox is empty"), L10n.s("Press ⌘⇧Space to capture something first"))
             return
         }
         delivery?.deliver(latest, to: .clipboard)
