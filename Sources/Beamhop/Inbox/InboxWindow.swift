@@ -178,6 +178,7 @@ private struct CaptureDetail: View {
                 HStack {
                     Button("投递 Claude Code") { model.deliver(capture, to: .claudeCode) }
                     Button("投递 ChatGPT") { model.deliver(capture, to: .chatgptDesktop) }
+                    Button("投递 Kimi") { model.deliver(capture, to: .kimiWork) }
                     Button("复制到剪贴板") { model.deliver(capture, to: .clipboard) }
                     Spacer()
                     Text(capture.id).font(.caption.monospaced()).foregroundStyle(.secondary)
@@ -189,7 +190,7 @@ private struct CaptureDetail: View {
                     kv("URL", capture.url)
                     kv("抓取时间", Date(timeIntervalSince1970: Double(capture.createdAt) / 1000)
                         .formatted(.dateTime))
-                    if let note = capture.userNote, !note.isEmpty { kv("备注", note) }
+                    if let note = capture.userNote, !note.isEmpty { kv("指令", note) }
                 }
 
                 section("Provenance(它从哪来)") {

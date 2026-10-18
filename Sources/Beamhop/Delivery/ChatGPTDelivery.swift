@@ -11,11 +11,13 @@ import BeamhopCore
 ///   - Injection is kAXValueAttribute SET-VALUE (not simulated typing); Cmd+V is only a fallback.
 ///   - auto_submit = false — we inject and let the user review + press send (spec §7.5 ⑥).
 enum ChatGPTDelivery {
-    static let bundleID = "com.openai.chat"
+    /// Known bundle ids: ≤25.x = com.openai.chat; 26.x (Codex-era, verified on this machine
+    /// 2026-10-18, v26.1007.71326) = com.openai.codex. Try both.
+    static let bundleIDs = ["com.openai.chat", "com.openai.codex"]
 
     /// Returns nil on success, or a user-facing failure reason (caller falls back to clipboard).
     static func deliver(_ capture: Capture, userNote: String?) -> String? {
-        guard let app = AppActivator.runningApp(bundleID: bundleID) else {
+        guard let (app, bundleID) = runningApp() else {
             return "ChatGPT Desktop 未运行(先打开它,或改用剪贴板)"
         }
         guard AppActivator.focus(app, bundleID: bundleID) else { return "无法把 ChatGPT Desktop 切到前台" }
@@ -24,7 +26,13 @@ enum ChatGPTDelivery {
         AXHelper.enableManualAX(pid: app.processIdentifier)
         usleep(150_000)   // S3/S6: give Chromium a beat to (re)build the tree
 
-        guard let composer = findComposer(pid: app.processIdentifier) else {
+        // A running app with no open window has no composer — say so instead of blaming the version.
+        // Polling: the AX window publishes lazily after activation (measured race on Kimi).
+        guard AXComposerFinder.waitForWindow(pid: app.processIdentifier) else {
+            return "ChatGPT 窗口未打开(点开它的聊天窗口再试)"
+        }
+
+        guard let composer = AXComposerFinder.findComposer(pid: app.processIdentifier) else {
             return "未找到 ChatGPT 输入框(AXTextArea)——版本可能已变化,请用剪贴板"
         }
 
@@ -42,50 +50,10 @@ enum ChatGPTDelivery {
         return nil
     }
 
-    /// Bounded BFS over the focused window's AX tree for the composer AXTextArea.
-    /// AX trees are trees (not DAGs), so no visited-set is needed — and one keyed by
-    /// `ObjectIdentifier` would be WRONG anyway: each AX query can return a new CF instance for
-    /// the same element, so identity-based dedup silently fails on deep Electron trees
-    /// (code review P2-2). Bound the walk by depth + visit count only (S6 timeout discipline).
-    private static func findComposer(pid: pid_t) -> AXUIElement? {
-        let appEl = AXUIElementCreateApplication(pid)
-        AXUIElementSetMessagingTimeout(appEl, 0.8)
-        var winRef: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(appEl, kAXFocusedWindowAttribute as CFString, &winRef) == .success,
-              let winRef, CFGetTypeID(winRef) == AXUIElementGetTypeID() else { return nil }
-        let window = winRef as! AXUIElement
-
-        var queue: [(el: AXUIElement, depth: Int)] = [(window, 0)]
-        var visited = 0
-        let maxVisits = 800
-        let maxDepth = 40
-        while !queue.isEmpty, visited < maxVisits {
-            let (el, depth) = queue.removeFirst()
-            visited += 1
-
-            var roleRef: CFTypeRef?
-            if AXUIElementCopyAttributeValue(el, kAXRoleAttribute as CFString, &roleRef) == .success,
-               let roleRef, CFGetTypeID(roleRef) == CFStringGetTypeID() {
-                let role = roleRef as! CFString as String
-                if role == (kAXTextAreaRole as String) {
-                    // Only an editable area is the composer; read-only transcript areas are not.
-                    // ("AXEditable" — no imported constant name for this attribute.)
-                    var editableRef: CFTypeRef?
-                    if AXUIElementCopyAttributeValue(el, "AXEditable" as CFString, &editableRef) == .success,
-                       let editableRef, CFEqual(editableRef, kCFBooleanTrue) {
-                        return el
-                    }
-                }
-            }
-
-            guard depth < maxDepth else { continue }
-            var childrenRef: CFTypeRef?
-            guard AXUIElementCopyAttributeValue(el, kAXChildrenAttribute as CFString, &childrenRef) == .success,
-                  let childrenRef, CFGetTypeID(childrenRef) == CFArrayGetTypeID() else { continue }
-            // kAXChildren yields AXUIElements by contract (compiler: downcast always succeeds).
-            for child in (childrenRef as! CFArray as NSArray) {
-                queue.append((child as! AXUIElement, depth + 1))
-            }
+    /// First running ChatGPT Desktop app across the known bundle ids.
+    private static func runningApp() -> (NSRunningApplication, String)? {
+        for bid in bundleIDs {
+            if let app = AppActivator.runningApp(bundleID: bid) { return (app, bid) }
         }
         return nil
     }

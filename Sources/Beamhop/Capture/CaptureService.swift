@@ -5,6 +5,7 @@ import BeamhopCore
 enum CaptureOutcome {
     case captured(Capture)
     case rejected(reason: String)   // user-facing; never silent (spec §7.7)
+    case duplicate                  // <500ms same window re-press: silent by design (spec §11 / W3-4)
 }
 
 /// Turns the frontmost app + AX reads into a Capture with full provenance (spec §6.5 / §12.1),
@@ -12,6 +13,10 @@ enum CaptureOutcome {
 final class CaptureService {
     private let store: CaptureStore
     private let maxBodyChars = 100_000   // spec §11
+
+    /// W3-4 duplicate-press guard: last capture key + time; same (bundleID, windowTitle) within
+    /// 500ms means the user double-tapped the hotkey — the second press must not create a row.
+    private var duplicateGate = DuplicateGate()
 
     init(store: CaptureStore) { self.store = store }
 
@@ -29,6 +34,12 @@ final class CaptureService {
         }
 
         var read = AXHelper.read(front: front)
+
+        // W3-4: same window re-pressed within 500ms → duplicate, decided BEFORE any expensive
+        // extension/insert work below (the AX read above already happened; that's the cheap part).
+        if duplicateGate.isDuplicate(bundleID: front.bundleID, title: read.windowTitle) {
+            return .duplicate
+        }
 
         // Week 2B: if the front app is a browser and the extension bridge is connected, ask it for
         // the active tab (more reliable url/selection + Readability body than AX for web content).

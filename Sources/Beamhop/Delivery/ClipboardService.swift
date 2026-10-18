@@ -67,6 +67,22 @@ enum ClipboardService {
         }
     }
 
+    /// Paste-injection variant for apps whose composer rejects AX set-value (Kimi Work, measured
+    /// 2026-10-18): same backup/write/⌘V/restore protocol, but never sends Return — the user
+    /// reviews the pasted content and sends manually.
+    static func safePasteOnly(_ text: String) throws {
+        guard let snapshots = backup() else { throw PasteError.clipboardUnprotectable }
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        pb.setString(text, forType: .string)
+        usleep(30_000)
+        sendCmdV()
+        usleep(80_000)
+        if !restore(snapshots) {
+            Notifier.error("剪贴板可能未完整恢复", "建议检查你的剪贴板")
+        }
+    }
+
     private static func sendReturn() {
         let src = CGEventSource(stateID: .hidSystemState)
         CGEvent(keyboardEventSource: src, virtualKey: 36, keyDown: true)?.post(tap: .cghidEventTap)

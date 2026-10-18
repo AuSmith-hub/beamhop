@@ -8,32 +8,51 @@ final class DeliveryService {
     private let store: CaptureStore
     init(store: CaptureStore) { self.store = store }
 
-    func deliver(_ capture: Capture, to target: DeliveryTarget, userNote: String? = nil) {
+    /// `completion` reports whether the CHOSEN target succeeded (clipboard fallback ≠ success).
+    func deliver(_ capture: Capture, to target: DeliveryTarget, userNote: String? = nil,
+                 completion: ((DeliveryTarget, Bool) -> Void)? = nil) {
         switch target {
         case .claudeCode:
             if let reason = ClaudeCodeDelivery.deliver(capture, userNote: userNote) {
                 record(capture, .claudeCode, .failed, reason)
                 Notifier.error("Claude Code 投递失败 → 已复制到剪贴板", reason)
                 clipboardFallback(capture, userNote: userNote, reason: reason)
+                completion?(.claudeCode, false)
             } else {
                 record(capture, .claudeCode, .success, nil)
                 Notifier.success("已投递到 Claude Code", capture.appName)
+                completion?(.claudeCode, true)
             }
         case .clipboard:
             clipboardFallback(capture, userNote: userNote, reason: "用户选择剪贴板")
+            completion?(.clipboard, true)
         case .chatgptDesktop:
             // S3 verified path: AX opt-in + kAXValueAttribute set-value, no auto-submit.
             if let reason = ChatGPTDelivery.deliver(capture, userNote: userNote) {
                 record(capture, .chatgptDesktop, .failed, reason)
                 Notifier.error("ChatGPT Desktop 投递失败 → 已复制到剪贴板", reason)
                 clipboardFallback(capture, userNote: userNote, reason: reason)
+                completion?(.chatgptDesktop, false)
             } else {
                 record(capture, .chatgptDesktop, .success, nil)
+                completion?(.chatgptDesktop, true)
             }
         case .cowork:
             // S2: .mcpb mechanism confirmed (see cowork-extension/), end-to-end install still
             // fast-follow — degrade to clipboard until then.
             clipboardFallback(capture, userNote: userNote, reason: "Cowork 集成待 S2 端到端验收,先用剪贴板")
+            completion?(.cowork, true)
+        case .kimiWork:
+            // Verified 2026-10-18: AX-locate the composer, focus it, clipboard-paste (no auto-send).
+            if let reason = KimiDelivery.deliver(capture, userNote: userNote) {
+                record(capture, .kimiWork, .failed, reason)
+                Notifier.error("Kimi Work 投递失败 → 已复制到剪贴板", reason)
+                clipboardFallback(capture, userNote: userNote, reason: reason)
+                completion?(.kimiWork, false)
+            } else {
+                record(capture, .kimiWork, .success, nil)
+                completion?(.kimiWork, true)
+            }
         }
     }
 
